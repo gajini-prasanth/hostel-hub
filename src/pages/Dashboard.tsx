@@ -1,23 +1,10 @@
+import { useEffect, useState } from "react";
 import { Users, DoorOpen, IndianRupee, MessageSquareWarning, TrendingUp, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dashboardStats, monthlyFeeData, complaints, notices, students } from "@/data/mockData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
-
-const statCards = [
-  { label: "Total Students", value: dashboardStats.totalStudents, icon: Users, color: "text-primary", bg: "bg-primary/10" },
-  { label: "Total Rooms", value: dashboardStats.totalRooms, icon: DoorOpen, color: "text-success", bg: "bg-success/10" },
-  { label: "Occupancy Rate", value: `${dashboardStats.occupancyRate}%`, icon: TrendingUp, color: "text-info", bg: "bg-info/10" },
-  { label: "Pending Fees", value: `₹${dashboardStats.pendingFees.toLocaleString()}`, icon: IndianRupee, color: "text-warning", bg: "bg-warning/10" },
-  { label: "Open Complaints", value: dashboardStats.openComplaints, icon: MessageSquareWarning, color: "text-destructive", bg: "bg-destructive/10" },
-  { label: "Active Notices", value: dashboardStats.totalNotices, icon: AlertTriangle, color: "text-primary", bg: "bg-primary/10" },
-];
-
-const occupancyPieData = [
-  { name: "Occupied", value: 10, color: "hsl(217, 91%, 50%)" },
-  { name: "Available", value: 5, color: "hsl(142, 72%, 40%)" },
-  { name: "Maintenance", value: 1, color: "hsl(38, 92%, 50%)" },
-];
+import { api } from "@/lib/api";
+import type { Complaint, Notice } from "@/lib/types";
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive"> = {
   low: "secondary",
@@ -25,7 +12,56 @@ const priorityVariant: Record<string, "default" | "secondary" | "destructive"> =
   high: "destructive",
 };
 
+const legendDotClass: Record<string, string> = {
+  Occupied: "bg-blue-500",
+  Available: "bg-green-500",
+  Maintenance: "bg-amber-500",
+};
+
 export default function Dashboard() {
+  const [dashboardStats, setDashboardStats] = useState({
+    totalStudents: 0,
+    totalRooms: 0,
+    occupancyRate: 0,
+    pendingFees: 0,
+    openComplaints: 0,
+    totalNotices: 0,
+  });
+  const [monthlyFeeData, setMonthlyFeeData] = useState<Array<{ month: string; collected: number; pending: number }>>([]);
+  const [occupancyPieData, setOccupancyPieData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get<{ stats: typeof dashboardStats; monthlyFeeData: Array<{ month: string; collected: number; pending: number }>; occupancyData: Array<{ name: string; value: number }> }>("/dashboard"),
+      api.get<Complaint[]>("/complaints"),
+      api.get<Notice[]>("/notices"),
+    ])
+      .then(([dash, comps, notes]) => {
+        setDashboardStats(dash.stats);
+        setMonthlyFeeData(dash.monthlyFeeData);
+        setOccupancyPieData(
+          dash.occupancyData.map((d, i) => ({
+            ...d,
+            color: ["hsl(217, 91%, 50%)", "hsl(142, 72%, 40%)", "hsl(38, 92%, 50%)"][i] || "hsl(217, 91%, 50%)",
+          }))
+        );
+        setComplaints(comps);
+        setNotices(notes as Notice[]);
+      })
+      .catch((e) => console.error(e));
+  }, []);
+
+  const statCards = [
+    { label: "Total Students", value: dashboardStats.totalStudents, icon: Users, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Total Rooms", value: dashboardStats.totalRooms, icon: DoorOpen, color: "text-success", bg: "bg-success/10" },
+    { label: "Occupancy Rate", value: `${dashboardStats.occupancyRate}%`, icon: TrendingUp, color: "text-info", bg: "bg-info/10" },
+    { label: "Pending Fees", value: `₹${Number(dashboardStats.pendingFees).toLocaleString()}`, icon: IndianRupee, color: "text-warning", bg: "bg-warning/10" },
+    { label: "Open Complaints", value: dashboardStats.openComplaints, icon: MessageSquareWarning, color: "text-destructive", bg: "bg-destructive/10" },
+    { label: "Active Notices", value: dashboardStats.totalNotices, icon: AlertTriangle, color: "text-primary", bg: "bg-primary/10" },
+  ];
+
   return (
     <div>
       <div className="page-header">
@@ -108,7 +144,7 @@ export default function Dashboard() {
           <div className="px-6 pb-4 flex gap-4 justify-center">
             {occupancyPieData.map((d) => (
               <div key={d.name} className="flex items-center gap-1.5 text-xs">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                <div className={`h-2.5 w-2.5 rounded-full ${legendDotClass[d.name] || "bg-primary"}`} />
                 <span className="text-muted-foreground">{d.name}</span>
               </div>
             ))}

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { students } from "@/data/mockData";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,8 @@ import { Search, Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { api } from "@/lib/api";
+import type { Student } from "@/lib/types";
 
 const feeVariant: Record<string, "default" | "secondary" | "destructive"> = {
   paid: "secondary",
@@ -17,8 +18,43 @@ const feeVariant: Record<string, "default" | "secondary" | "destructive"> = {
 };
 
 export default function Students() {
+  const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
   const [filterCourse, setFilterCourse] = useState("all");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<Student>({
+    id: "",
+    name: "",
+    email: "",
+    phone: "",
+    course: "",
+    year: 1,
+    roomNumber: "",
+    parentName: "",
+    parentPhone: "",
+    feeStatus: "pending",
+    joinDate: new Date().toISOString().slice(0, 10),
+  });
+
+  const fetchStudents = async () => {
+    const data = await api.get<Student[]>("/students");
+    setStudents(data);
+  };
+
+  useEffect(() => {
+    fetchStudents().catch((e) => console.error(e));
+  }, []);
+
+  const createStudent = async () => {
+    await api.post("/students", form);
+    setOpen(false);
+    await fetchStudents();
+  };
+
+  const deleteStudent = async (id: string) => {
+    await api.delete(`/students/${id}`);
+    await fetchStudents();
+  };
 
   const courses = [...new Set(students.map((s) => s.course))];
   const filtered = students.filter((s) => {
@@ -34,7 +70,7 @@ export default function Students() {
           <h1 className="page-title">Students</h1>
           <p className="page-description">Manage hostel students</p>
         </div>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Add Student</Button>
           </DialogTrigger>
@@ -43,18 +79,18 @@ export default function Students() {
               <DialogTitle>Add New Student</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <div><Label>Full Name</Label><Input placeholder="Enter name" className="mt-1" /></div>
-              <div><Label>Student ID</Label><Input placeholder="e.g. S009" className="mt-1" /></div>
-              <div><Label>Email</Label><Input type="email" placeholder="Email" className="mt-1" /></div>
-              <div><Label>Phone</Label><Input placeholder="Phone number" className="mt-1" /></div>
-              <div><Label>Course</Label><Input placeholder="e.g. B.Tech CS" className="mt-1" /></div>
-              <div><Label>Year</Label><Input type="number" placeholder="Year" className="mt-1" /></div>
-              <div><Label>Parent Name</Label><Input placeholder="Parent name" className="mt-1" /></div>
-              <div><Label>Parent Phone</Label><Input placeholder="Parent phone" className="mt-1" /></div>
-              <div className="col-span-2"><Label>Room Number</Label><Input placeholder="e.g. 101" className="mt-1" /></div>
+              <div><Label>Full Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Enter name" className="mt-1" /></div>
+              <div><Label>Student ID</Label><Input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="e.g. S009" className="mt-1" /></div>
+              <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" placeholder="Email" className="mt-1" /></div>
+              <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" className="mt-1" /></div>
+              <div><Label>Course</Label><Input value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })} placeholder="e.g. B.Tech CS" className="mt-1" /></div>
+              <div><Label>Year</Label><Input value={form.year} onChange={(e) => setForm({ ...form, year: Number(e.target.value) || 1 })} type="number" placeholder="Year" className="mt-1" /></div>
+              <div><Label>Parent Name</Label><Input value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} placeholder="Parent name" className="mt-1" /></div>
+              <div><Label>Parent Phone</Label><Input value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })} placeholder="Parent phone" className="mt-1" /></div>
+              <div className="col-span-2"><Label>Room Number</Label><Input value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} placeholder="e.g. 101" className="mt-1" /></div>
               <div className="col-span-2 flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
-                <Button>Save Student</Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button onClick={createStudent}>Save Student</Button>
               </div>
             </div>
           </DialogContent>
@@ -110,7 +146,7 @@ export default function Students() {
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteStudent(s.id)} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

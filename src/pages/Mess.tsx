@@ -1,19 +1,18 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const weeklyMenu = [
-  { day: "Monday", breakfast: "Poha, Tea", lunch: "Dal Rice, Salad", dinner: "Paneer Butter Masala, Roti" },
-  { day: "Tuesday", breakfast: "Idli Sambhar", lunch: "Chole Rice, Raita", dinner: "Mix Veg, Roti" },
-  { day: "Wednesday", breakfast: "Paratha, Curd", lunch: "Rajma Rice", dinner: "Dal Makhani, Roti" },
-  { day: "Thursday", breakfast: "Upma, Tea", lunch: "Kadhi Rice", dinner: "Aloo Gobi, Roti" },
-  { day: "Friday", breakfast: "Bread Omelette", lunch: "Dal Fry Rice", dinner: "Malai Kofta, Roti" },
-  { day: "Saturday", breakfast: "Dosa, Chutney", lunch: "Biryani, Raita", dinner: "Pav Bhaji" },
-  { day: "Sunday", breakfast: "Chole Bhature", lunch: "Special Thali", dinner: "Pulao, Dal" },
-];
+import { api } from "@/lib/api";
+import type { MessMenu } from "@/lib/types";
 
 const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
 export default function Mess() {
+  const [weeklyMenu, setWeeklyMenu] = useState<MessMenu[]>([]);
+
+  useEffect(() => {
+    api.get<MessMenu[]>("/mess").then(setWeeklyMenu).catch((e) => console.error(e));
+  }, []);
+
   return (
     <div>
       <div className="page-header">
@@ -25,10 +24,10 @@ export default function Mess() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {weeklyMenu.map((m) => (
-          <Card key={m.day} className={`shadow-sm ${m.day === today ? "ring-2 ring-primary" : ""}`}>
+          <Card key={m.id} className={`shadow-sm ${m.day_of_week === today ? "ring-2 ring-primary" : ""}`}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{m.day}</CardTitle>
-              {m.day === today && <Badge>Today</Badge>}
+              <CardTitle className="text-base">{m.day_of_week}</CardTitle>
+              {m.day_of_week === today && <Badge>Today</Badge>}
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>

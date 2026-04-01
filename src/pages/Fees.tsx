@@ -1,9 +1,11 @@
-import { feeRecords } from "@/data/mockData";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IndianRupee, CheckCircle2, Clock, AlertTriangle, Download } from "lucide-react";
+import { api } from "@/lib/api";
+import type { FeeRecord } from "@/lib/types";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   paid: "secondary",
@@ -12,6 +14,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
 };
 
 export default function Fees() {
+  const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
+
+  useEffect(() => {
+    api.get<FeeRecord[]>("/fees").then(setFeeRecords).catch((e) => console.error(e));
+  }, []);
+
   const totalCollected = feeRecords.filter((f) => f.status === "paid").reduce((a, f) => a + f.amount, 0);
   const totalPending = feeRecords.filter((f) => f.status !== "paid").reduce((a, f) => a + f.amount, 0);
 

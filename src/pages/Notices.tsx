@@ -1,8 +1,10 @@
-import { notices } from "@/data/mockData";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Megaphone } from "lucide-react";
+import { api } from "@/lib/api";
+import type { Notice } from "@/lib/types";
 
 const priorityConfig: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
   normal: { variant: "secondary", label: "Normal" },
@@ -11,6 +13,26 @@ const priorityConfig: Record<string, { variant: "default" | "secondary" | "destr
 };
 
 export default function Notices() {
+  const [notices, setNotices] = useState<Notice[]>([]);
+
+  const fetchNotices = async () => {
+    const data = await api.get<Notice[]>("/notices");
+    setNotices(data);
+  };
+
+  useEffect(() => {
+    fetchNotices().catch((e) => console.error(e));
+  }, []);
+
+  const createNotice = async () => {
+    const title = window.prompt("Notice title");
+    if (!title) return;
+    const content = window.prompt("Notice content") || "";
+    const id = `N${String(Date.now()).slice(-4)}`;
+    await api.post("/notices", { id, title, content, priority: "normal", author: "Admin" });
+    await fetchNotices();
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -18,7 +40,7 @@ export default function Notices() {
           <h1 className="page-title">Notice Board</h1>
           <p className="page-description">Announcements and alerts</p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" />Post Notice</Button>
+        <Button onClick={createNotice}><Plus className="h-4 w-4 mr-2" />Post Notice</Button>
       </div>
 
       <div className="space-y-4">

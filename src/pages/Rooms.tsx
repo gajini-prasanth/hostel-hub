@@ -1,8 +1,10 @@
-import { rooms } from "@/data/mockData";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, DoorOpen, Users, Wrench } from "lucide-react";
+import { api } from "@/lib/api";
+import type { Room } from "@/lib/types";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   available: { label: "Available", variant: "secondary" },
@@ -17,6 +19,28 @@ const typeIcons: Record<string, string> = {
 };
 
 export default function Rooms() {
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  const fetchRooms = async () => {
+    const data = await api.get<Room[]>("/rooms");
+    setRooms(data);
+  };
+
+  useEffect(() => {
+    fetchRooms().catch((e) => console.error(e));
+  }, []);
+
+  const addRoom = async () => {
+    const number = window.prompt("Room number (e.g. 305)");
+    if (!number) return;
+    const type = (window.prompt("Type: single, double, shared", "double") || "double") as Room["type"];
+    const floor = Number(window.prompt("Floor number", "1") || "1");
+    const capacity = type === "single" ? 1 : type === "double" ? 2 : 4;
+    const id = `R${String(Date.now()).slice(-4)}`;
+    await api.post("/rooms", { id, number, type, capacity, floor, occupied: 0, status: "available" });
+    await fetchRooms();
+  };
+
   const totalBeds = rooms.reduce((a, r) => a + r.capacity, 0);
   const occupiedBeds = rooms.reduce((a, r) => a + r.occupied, 0);
 
@@ -27,7 +51,7 @@ export default function Rooms() {
           <h1 className="page-title">Rooms</h1>
           <p className="page-description">Manage hostel rooms and bed allocation</p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" />Add Room</Button>
+        <Button onClick={addRoom}><Plus className="h-4 w-4 mr-2" />Add Room</Button>
       </div>
 
       {/* Summary */}
@@ -91,13 +115,11 @@ export default function Rooms() {
                     <span className="text-muted-foreground">Occupancy</span>
                     <span>{room.occupied}/{room.capacity}</span>
                   </div>
-                  {/* Occupancy bar */}
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden mt-1">
-                    <div
-                      className="h-full rounded-full transition-all bg-primary"
-                      style={{ width: `${(room.occupied / room.capacity) * 100}%` }}
-                    />
-                  </div>
+                  <progress
+                    className="w-full h-2 mt-1 [&::-webkit-progress-bar]:bg-secondary [&::-webkit-progress-value]:bg-primary [&::-webkit-progress-value]:rounded-full [&::-moz-progress-bar]:bg-primary rounded-full"
+                    value={room.occupied}
+                    max={room.capacity}
+                  />
                 </div>
               </CardContent>
             </Card>

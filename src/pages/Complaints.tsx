@@ -1,8 +1,10 @@
-import { complaints } from "@/data/mockData";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { api } from "@/lib/api";
+import type { Complaint } from "@/lib/types";
 
 const priorityColors: Record<string, string> = {
   low: "bg-secondary text-secondary-foreground",
@@ -17,6 +19,45 @@ const statusIcons: Record<string, React.ReactNode> = {
 };
 
 export default function Complaints() {
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+
+  const fetchComplaints = async () => {
+    const data = await api.get<Complaint[]>("/complaints");
+    setComplaints(data);
+  };
+
+  useEffect(() => {
+    fetchComplaints().catch((e) => console.error(e));
+  }, []);
+
+  const createComplaint = async () => {
+    const studentId = window.prompt("Student ID (e.g. S001)");
+    if (!studentId) return;
+    const subject = window.prompt("Complaint subject");
+    if (!subject) return;
+    const description = window.prompt("Complaint description") || "";
+    const category = window.prompt("Category", "General") || "General";
+    const id = `C${String(Date.now()).slice(-4)}`;
+    await api.post("/complaints", {
+      id,
+      studentId,
+      studentName: "Unknown",
+      roomNumber: "",
+      category,
+      subject,
+      description,
+      priority: "medium",
+    });
+    await fetchComplaints();
+  };
+
+  const cycleStatus = async (id: string, current: Complaint["status"]) => {
+    const order: Complaint["status"][] = ["open", "in-progress", "resolved"];
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    await api.patch(`/complaints/${id}/status`, { status: next });
+    await fetchComplaints();
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -24,7 +65,7 @@ export default function Complaints() {
           <h1 className="page-title">Complaints</h1>
           <p className="page-description">Track and manage student complaints</p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" />New Complaint</Button>
+        <Button onClick={createComplaint}><Plus className="h-4 w-4 mr-2" />New Complaint</Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -58,7 +99,7 @@ export default function Complaints() {
                     <p className="text-xs text-muted-foreground mt-2">{c.studentName} · Room {c.roomNumber} · {c.createdAt}</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="shrink-0">Update</Button>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => cycleStatus(c.id, c.status)}>Update</Button>
               </div>
             </CardContent>
           </Card>

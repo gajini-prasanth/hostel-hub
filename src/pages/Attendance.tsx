@@ -1,18 +1,28 @@
-import { useState } from "react";
-import { students } from "@/data/mockData";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarCheck, Download } from "lucide-react";
+import { api } from "@/lib/api";
+import type { AttendanceRow } from "@/lib/types";
 
 type AttendanceStatus = "present" | "absent" | "leave";
 
 export default function Attendance() {
   const today = new Date().toISOString().split("T")[0];
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(
-    Object.fromEntries(students.map((s) => [s.id, "present" as AttendanceStatus]))
-  );
+  const [rows, setRows] = useState<AttendanceRow[]>([]);
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+
+  const fetchAttendance = useCallback(async () => {
+    const data = await api.get<{ date: string; records: AttendanceRow[] }>(`/attendance?date=${today}`);
+    setRows(data.records);
+    setAttendance(Object.fromEntries(data.records.map((s) => [s.id, s.status])));
+  }, [today]);
+
+  useEffect(() => {
+    fetchAttendance().catch((e) => console.error(e));
+  }, [fetchAttendance]);
 
   const toggleStatus = (studentId: string) => {
     setAttendance((prev) => {
@@ -29,9 +39,21 @@ export default function Attendance() {
   };
 
   const counts = {
-    present: Object.values(attendance).filter((v) => v === "present").length,
-    absent: Object.values(attendance).filter((v) => v === "absent").length,
-    leave: Object.values(attendance).filter((v) => v === "leave").length,
+    present: rows.filter((r) => attendance[r.id] === "present").length,
+    absent: rows.filter((r) => attendance[r.id] === "absent").length,
+    leave: rows.filter((r) => attendance[r.id] === "leave").length,
+  };
+
+  const saveAttendance = async () => {
+    await api.post("/attendance", {
+      date: today,
+      records: rows.map((r) => ({
+        studentId: r.id,
+        studentName: r.studentName,
+        roomNumber: r.roomNumber,
+        status: attendance[r.id] || "present",
+      })),
+    });
   };
 
   return (
@@ -43,7 +65,7 @@ export default function Attendance() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><Download className="h-4 w-4 mr-2" />Export</Button>
-          <Button><CalendarCheck className="h-4 w-4 mr-2" />Save Attendance</Button>
+          <Button onClick={saveAttendance}><CalendarCheck className="h-4 w-4 mr-2" />Save Attendance</Button>
         </div>
       </div>
 
@@ -66,10 +88,10 @@ export default function Attendance() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {students.map((s) => (
+              {rows.map((s) => (
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-xs">{s.id}</TableCell>
-                  <TableCell className="font-medium">{s.name}</TableCell>
+                  <TableCell className="font-medium">{s.studentName}</TableCell>
                   <TableCell className="hidden sm:table-cell">{s.roomNumber}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">{s.course}</TableCell>
                   <TableCell>
