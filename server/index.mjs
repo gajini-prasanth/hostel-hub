@@ -1,21 +1,21 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import mysql from "mysql2/promise";
-import path from "node:path";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.db") });
+const DB_CONFIG = {
+  host: "127.0.0.1",
+  port: 3306,
+  user: "root",
+  password: "",
+  database: "hostel_hub",
+};
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "127.0.0.1",
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "hostel_hub",
+  ...DB_CONFIG,
   waitForConnections: true,
   connectionLimit: 10,
 });

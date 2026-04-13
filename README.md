@@ -18,7 +18,7 @@ Hostel Hub is a hostel management dashboard built with Vite, React, TypeScript, 
 - Frontend: React 18, TypeScript, Vite
 - UI: Tailwind CSS, shadcn/ui, Radix UI, lucide-react, sonner
 - State and data fetching: TanStack Query and a small fetch wrapper
-- Backend: Express, mysql2, cors, dotenv
+- Backend: Express, mysql2, cors
 - Database: MySQL / MariaDB
 
 ## Project Structure
@@ -26,7 +26,7 @@ Hostel Hub is a hostel management dashboard built with Vite, React, TypeScript, 
 - src/ contains the React app, shared UI components, hooks, utilities, and pages
 - server/index.mjs exposes the REST API used by the app
 - database/hostel_hub.sql contains the schema and sample seed data
-- scripts/test-db-connection.mjs checks the database connection using .env.db
+- scripts/test-db-connection.mjs checks the database connection using XAMPP defaults
 
 ## Getting Started
 
@@ -41,22 +41,20 @@ Hostel Hub is a hostel management dashboard built with Vite, React, TypeScript, 
 npm install
 ```
 
-### Set up the database
+### Set up the database (XAMPP)
 
-1. Create a MySQL database named hostel_hub, or import the schema from database/hostel_hub.sql.
-2. Create a .env.db file in the project root with your database credentials.
+1. Start Apache and MySQL from the XAMPP Control Panel.
+2. Open phpMyAdmin at http://localhost/phpmyadmin.
+3. Create a database named hostel_hub.
+4. Import database/hostel_hub.sql into hostel_hub.
 
-Example .env.db:
+The API and DB test script use these XAMPP defaults:
 
-```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=hostel_hub
-```
-
-3. Import the schema and seed data if you want the sample dashboard content.
+- Host: 127.0.0.1
+- Port: 3306
+- User: root
+- Password: (empty)
+- Database: hostel_hub
 
 ### Run the app
 
@@ -90,7 +88,7 @@ By default, the frontend uses http://localhost:4000/api for requests. You can ov
 - npm run lint runs ESLint
 - npm run test runs the Vitest suite once
 - npm run test:watch runs Vitest in watch mode
-- npm run db:test checks the database connection using .env.db
+- npm run db:test checks the database connection using XAMPP defaults
 
 ## API Overview
 
