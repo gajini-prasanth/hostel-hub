@@ -58,7 +58,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <h2 className="text-sm font-bold text-sidebar-accent-foreground">HostelHub</h2>
+              <h2 className="text-sm font-bold text-sidebar-accent-foreground">Hostel Hub</h2>
               <p className="text-xs text-sidebar-muted">Management System</p>
             </div>
           )}
